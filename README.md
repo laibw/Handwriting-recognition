@@ -33,29 +33,56 @@ The main library that will be used for enabling the TFT screen is TFT_eSPI, whic
 
 In User_Setup.h, comment out the line (line45):
 
-`//#define ILI9341_DRIVER       // Generic driver for common displays`
+```c++
+//#define ILI9341_DRIVER       // Generic driver for common displays`
+```
 
 Uncomment this line (line54):
 
 ```c++
-#define ILI9488_DRIVER
+#define ILI9488_DRIVER     // WARNING: Do not connect ILI9488 display SDO to MISO if other devices share the SPI bus (TFT SDO does NOT tristate when CS is high)
 ```
 
 Comment out these lines (line170-176):
 
-![](media/9016d70f7ae9f56acd76b8af3f1e7519.png)
+```c++
+//#define TFT_MISO  PIN_D6  // Automatically assigned with ESP8266 if not defined
+//#define TFT_MOSI  PIN_D7  // Automatically assigned with ESP8266 if not defined
+//#define TFT_SCLK  PIN_D5  // Automatically assigned with ESP8266 if not defined
+
+//#define TFT_CS    PIN_D8  // Chip select control pin D8
+//#define TFT_DC    PIN_D3  // Data Command control pin
+//#define TFT_RST   PIN_D4  // Reset pin (could connect to NodeMCU RST, see next line)
+```
 
 Uncomment this line (line230):
 
-![](media/428efff2e4f13e95e7ec85f021823867.png)
+```c++
+#define TOUCH_CS 21     // Chip select pin (T_CS) of touch screen
+```
 
 Go to User_Setup_Select.h and uncomment this line (line52):
 
-![](media/5298aaa82d858d3c2b93b7d853c4c3a7.png)
+```c++
+#include <User_Setups/Setup21_ILI9488.h>           // Setup file for ESP32 and ILI9488 SPI bus TFT
+```
 
 Go to Setup21_ILI9488.h and make sure the values are as shown below:
 
-![](media/9e22aaaa1f46c55c4acde2b6d9140f74.png)
+```c++
+#define USER_SETUP_ID 21
+
+#define ILI9488_DRIVER
+
+//#define TFT_INVERSION_OFF
+
+#define TFT_MISO 19 // (leave TFT SDO disconnected if other SPI devices share MISO)
+#define TFT_MOSI 23
+#define TFT_SCLK 18
+#define TFT_CS    15  // Chip select control pin
+#define TFT_DC    2  // Data Command control pin
+#define TFT_RST   4  // Reset pin (could connect to RST pin)
+```
 
 Save all the changes made and return back to the Arduino IDE.
 
