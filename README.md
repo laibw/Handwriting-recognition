@@ -33,7 +33,7 @@ The main library that will be used for enabling the TFT screen is TFT_eSPI, whic
 
 In User_Setup.h, comment out the line (line45):
 
-![](media/0afc97edc5c4d52007417b42848e098e.png)
+`//#define ILI9341_DRIVER`
 
 Uncomment this line (line54):
 
