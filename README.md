@@ -33,11 +33,13 @@ The main library that will be used for enabling the TFT screen is TFT_eSPI, whic
 
 In User_Setup.h, comment out the line (line45):
 
-`//#define ILI9341_DRIVER`
+`//#define ILI9341_DRIVER       // Generic driver for common displays`
 
 Uncomment this line (line54):
 
-![](media/ff854757a57029ecc9de7412a2fe4cab.png)
+```c++
+#define ILI9488_DRIVER
+```
 
 Comment out these lines (line170-176):
 
