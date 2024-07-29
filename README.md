@@ -25,7 +25,7 @@ This will provide the IDE with the board manager settings for various ESP32 conf
 
 This is the specific configuration that will be used for this project:
 
-![A screenshot of a computer program Description automatically generated](media/6993b165d781a7c8071865dc326da901.png)
+![image](https://github.com/user-attachments/assets/6e307fbd-31fe-4e98-a06c-0526a9dca52e)
 
 The Erase All Flash Before Sketch Upload option should be enabled when wanting to have a clean slate and removes all previous data stored within the SPIFFS internal storage (for example recalibrating screen). The partition scheme: “Huge APP (3MB No OTA/1MB SPIFFS)” used will be suitable storing large programs just in case the program size gets too big.
 
