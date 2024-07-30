@@ -164,17 +164,15 @@ This line is used to map output numbers to an alphabet which will be useful late
 def get_file_size(file_path):
   return os.path.getsize(file_path)
 ```
-This defines a function to calculate file size.
+This defines a function to calculate file size.  
 <br />
 
 ```python
 drive.mount('/content/drive')
 ```
 This line is for mounting google drive onto google colab environment so that files in google drive can be transferred over to colab. (Manually transferring files from local machine to google colab is very slow, google drive is much faster).
-<br />
-
 ![image](https://github.com/user-attachments/assets/52ab56eb-fc41-442e-ac06-01505cb81b05)
-After running this line, a prompt will show up asking for permission to access google drive. Follow through all the steps and connect google colab to the google drive account which contains the csv data.
+After running this line, a prompt will show up asking for permission to access google drive. Follow through all the steps and connect google colab to the google drive account which contains the csv data.  
 <br />
 
 ```python
@@ -182,14 +180,14 @@ data_path = '/content/drive/MyDrive/handwritten_data_785.csv'
 df = pd.read_csv(data_path)
 df.shape
 ```
-Here the data from the csv file in google drive is read and stored in variable df (Note that the csv file name here is handwritten_data_785.csv, but it could be different and has to be changed in the code accordingly). df.shape shows the shape of the df: (372037, 785). 372037 examples of alphabet handwriting and 784 pixel value +1 label value.
+Here the data from the csv file in google drive is read and stored in variable df (Note that the csv file name here is handwritten_data_785.csv, but it could be different and has to be changed in the code accordingly). df.shape shows the shape of the df: (372037, 785). 372037 examples of alphabet handwriting and 784 pixel value +1 label value.  
 <br />
 
 ```python
 features = df.values[:,1:]
 labels = df.values[:,0]
 ```
-This splits the data into pixel values(features) and labels using array slicing. [:,1:] means all rows and second to last column, [:,0] means all rows and first column (since the label value is stored in the first column).
+This splits the data into pixel values(features) and labels using array slicing. [:,1:] means all rows and second to last column, [:,0] means all rows and first column (since the label value is stored in the first column).  
 <br />
 
 ```python
@@ -197,85 +195,178 @@ features = features / 255.
 features=np.ceil(features)
 labels=keras.utils.to_categorical(labels)
 ```
-This sections deals with preprocessing the data to be more suitable for training. First the features are divided by 255 to convert the range from 0-255 to 0-1 which will be easier to train. The pixel values are then converted from grayscale to binary using np.ceil() function which makes all non 0 pixels 1. This is done to match the input method of the handwriting system as a binary bitmap, which will produce a model that is better suited for the current usage. The labels currently are in the form of 0-25 to represent alphabets, but it will be more useful if it’s a one-hot encoded array with all elements as 0 except the position corresponding to the label itself as 1. This is done using the keras.utils.to_categorical() function. A label that was originally 13 for example will become a 1D array of all 0 except index 13 which is 1.
+This sections deals with preprocessing the data to be more suitable for training. First the features are divided by 255 to convert the range from 0-255 to 0-1 which will be easier to train. The pixel values are then converted from grayscale to binary using np.ceil() function which makes all non 0 pixels 1. This is done to match the input method of the handwriting system as a binary bitmap, which will produce a model that is better suited for the current usage. The labels currently are in the form of 0-25 to represent alphabets, but it will be more useful if it’s a one-hot encoded array with all elements as 0 except the position corresponding to the label itself as 1. This is done using the keras.utils.to_categorical() function. A label that was originally 13 for example will become a 1D array of all 0 except index 13 which is 1.  
 <br />
+
 ```python
 x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.25, random_state=42)
 ```
-This line splits the labels and features into training and testing datasets randomly in a 75:25 split. 42 is the random seed used so that the dataset can be replicated exactly between examples. x are features and y are labels. Splitting the dataset is important to avoid overfitting the training data set during training.
+This line splits the labels and features into training and testing datasets randomly in a 75:25 split. 42 is the random seed used so that the dataset can be replicated exactly between examples. x are features and y are labels. Splitting the dataset is important to avoid overfitting the training data set during training.  
+<br />
 
-![A close-up of a computer code Description automatically generated](media/dbcb3dcb94336f85549f87d30bf64cf6.png)
+```python
+print(x_train.shape)
+print(x_test.shape)
+print(y_train.shape)
+print(y_test.shape)
+```
+Prints out the shape of the dataset. x_train should have 279027 rows and 784 columns(28x28) while x_test have 93010 rows and the same amount of columns. y_train and y_test should have the same amount of rows are the x counterparts and 26 columns representing the one-hot array.  
+<br />
 
-Prints out the shape of the dataset. x_train should have 279027 rows and 784 columns(28x28) while x_test have 93010 rows and the same amount of columns. y_train and y_test should have the same amount of rows are the x counterparts and 26 columns representing the one-hot array.
+```python
+model=keras.Sequential([
+    Dense(128,activation='relu',input_shape=(784,)),
+    Dense(26)
+])
+```
+This block of code defines the model layers that will be implemented. Dense means a fully interconnected layer of nodes with the first parameter being the number of nodes. The activation function used is relu(rectified linear) which is a commonly used activation function for machine learning. The input shape is the number of features that is used as input, in this case 784 pixels. The model here is a simple sequential neural network with 2 layers having 128 and 26 nodes respectively. The second layer has the same amount of nodes as the output(26 alphabets). The output node with the highest activation will be considered as the predicted alphabet.  
+<br />
 
-![A computer code with black text Description automatically generated with medium confidence](media/2c4b333ca7599b9102b8d53d64dc122d.png)
+```python
+model.summary()
+```
+The number of parameters can be determined by the number of interconnections between nodes as these connections holds the model weights(parameters). Total parameters=(784+1(bias))x128+(128+1(bias))x26=103834 which matches the summary.  
+<br />
 
-This block of code defines the model layers that will be implemented. Dense means a fully interconnected layer of nodes with the first parameter being the number of nodes. The activation function used is relu(rectified linear) which is a commonly used activation function for machine learning. The input shape is the number of features that is used as input, in this case 784 pixels. The model here is a simple sequential neural network with 2 layers having 128 and 26 nodes respectively. The second layer has the same amount of nodes as the output(26 alphabets). The output node with the highest activation will be considered as the predicted alphabet.
+```python
+model.compile(optimizer='adam',
+              loss=CategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'])
+```
+After defining the model structure, the model is set up for training using model.compile(). The optimizer is set to adam, and the loss function by which the model is trained to minimise is CategoricalCrossentropy with from_logits set to true because the output values have not undergone softmax and are considered logits. A metric to pay attention to is accuracy which is the rate of a correct prediction.  
+<br />
 
-![A screenshot of a computer Description automatically generated](media/a7988fc095f11f3ad2652c6e0f1cd18d.png)
+```python
+del df
+del features
+del labels
+```
+This block is run to delete redundant data to save memory (colab offers only 12GB on free version). If memory is not enough, the runtime will crash, and training cannot complete.  
+<br />
 
-The number of parameters can be determined by the number of interconnections between nodes as these connections holds the model weights(parameters). Total parameters=(784+1(bias))x128+(128+1(bias))x26=103834 which matches the summary.
+```python
+model.fit(x_train,y_train,epochs=10)
+```
+This line will begin running the training algorithm for 10 epochs(cycles) by tuning the weights based on minimizing the loss function. The loss value will decrease as training goes on and accuracy will increase.  
+<br />
 
-![A black text with red and black text Description automatically generated](media/3af90e3cd2c53979b0f8f1aa88211adf.png)
+```python
+test_loss,test_accuracy = model.evaluate(x_test,y_test, verbose=2)
+print("Accuracy:",format(round(100*test_accuracy,2)))
+```
+This is to evaluate the model against a separate testing dataset that the model has never seen before. If the accuracy does not differ significantly from training accuracy then the model is considered to have not overfitted. In this case the model achieve over 96% accuracy on the testing dataset.  
+<br />
 
-After defining the model structure, the model is set up for training using model.compile(). The optimizer is set to adam, and the loss function by which the model is trained to minimise is CategoricalCrossentropy with from_logits set to true because the output values have not undergone softmax and are considered logits. A metric to pay attention to is accuracy which is the rate of a correct prediction.
+```python
+model_name='tf_model_AZ_handwriting.keras'
+model.save(model_name)
+```
+Now save the model as a backup. The model can be found under the content folder in google colab.  
+<br />
 
-![A black text with purple lines Description automatically generated](media/f3b391cd878b481be93dac9916dfc6f7.png)
+```python
+print(get_file_size(model_name))
+```
+This shows the size of the model, in this case 1.2MB which is too big for ESP32. The model has to be shrunk in order to deploy on the microcontroller’s limited memory.  
+<br />
 
-This block is run to delete redundant data to save memory (colab offers only 12GB on free version). If memory is not enough, the runtime will crash, and training cannot complete.
+```python
+test_image=x_test[0:10]
+test_label=y_test[0:10]
+classes_y=np.argmax(test_label,axis=1)
+predictions=model.predict(test_image)
+classes_x=np.argmax(predictions,axis=1)
+print('Actual classes: ',end="")
+for q in classes_y:
+  print(output_labels[q],end=" ")
+print('\nPredicted classes: ',end="")
+for p in classes_x:
+    print(output_labels[p],end=" ")
+```
+A piece of code to demonstrate how the model works. By taking a few sample features from the testing dataset and running through the model, the model will output different an array of 26 values representing how close the handwriting is to each alphabet. The highest value position is then translated into the corresponding alphabet as the chosen predicted alphabet.  
+<br />
 
-![](media/a37730b1b34dd0f738f59a5ac0224c55.png)
+![image](https://github.com/user-attachments/assets/325234af-69b7-4fff-a17b-69fda733f76d)
 
-This line will begin running the training algorithm for 10 epochs(cycles) by tuning the weights based on minimizing the loss function. The loss value will decrease as training goes on and accuracy will increase.
+As shown the model can correctly predict the samples tested.  
 
-![A close-up of a number Description automatically generated](media/42d9983d3098e1ff3d1f7a56354be486.png)
+In order to run the model on ESP32, the model has to be smaller to fit into the limited memory. As good way to do this is to convert the Tensorflow model into a Tensorflowlite model. Tensorflowlite does a few optimizations and quantization to reduce the space required to store the parameter(weights) which the model is mainly comprised of.  
+<br />
 
-This is to evaluate the model against a separate testing dataset that the model has never seen before. If the accuracy does not differ significantly from training accuracy then the model is considered to have not overfitted. In this case the model achieve over 96% accuracy on the testing dataset.
+```python
+tflite_model_name="tf_lite_model_AZ_handwriting.tflite"
+tf_lite_converter=tf.lite.TFLiteConverter.from_keras_model(model)
+tf_lite_converter.optimizations = [tf.lite.Optimize.DEFAULT]
+def representative_dataset_generator():
+  for value in x_test:
+  # Each scalar value must be inside of a 2D array that is wrapped in a list
+    yield [np.array(value, dtype=np.float32, ndmin=2)]
+tf_lite_converter.representative_dataset = representative_dataset_generator
+tflite_model=tf_lite_converter.convert()
+```
+This block of code is to convert the Tensorflow model into a tensorflowlite model. A converter is set up that takes in the tensorflow model and applies various optimizations to reduce the size of the model. The main optimization used is quantization which converts the weights(which are usually stored as floats) into a smaller data type without losing much accuracy. In order to apply quantization a representative dataset should be provided for the algorithm to estimate and calibrate the range weights so that it can optimize the size. The representative dataset is taken from the test dataset in this case.  
+<br />
 
-![A close-up of a computer code Description automatically generated](media/53ce3a86fa95a0b0f70df2e0a6a6a815.png)
+```python
+open(tflite_model_name,"wb").write(tflite_model)
+```
+This line saves the tensorflowlite model as a tflite file which can be found under the content folder of google colab. The output shows the size of the converted model which is around 100kB which is an order of magnitude smaller and more suitable to be run on the ESP32.  
+<br />
 
-Now save the model as a backup. The model can be found under the content folder in google colab.
+```python
+interpreter=tf.lite.Interpreter(model_path=tflite_model_name)
+```
+```python
+input_details=interpreter.get_input_details()
+output_details=interpreter.get_output_details()
+print(input_details[0]['shape'])
+print(input_details[0]['dtype'])
+print(output_details[0]['shape'])
+print(output_details[0]['dtype'])
+```
+To test the tensorflowlite version of the model, it has to be run through an interpreter. The input tensor(array) accepts only 1 sample at a time as can be seen in the input_details shape. To test a large scale dataset all at once the input tensor has to be reshaped to accept more samples at once.  
+<br />
 
-![A close-up of a computer screen Description automatically generated](media/c5524f67820d8e9c223c821916321658.png)
+```python
+interpreter.resize_tensor_input(input_details[0]['index'],(93010,784))
+interpreter.resize_tensor_input(output_details[0]['index'],(93010,26))
+interpreter.allocate_tensors()
+input_details=interpreter.get_input_details()
+output_details=interpreter.get_output_details()
+print(input_details[0]['shape'])
+print(input_details[0]['dtype'])
+print(output_details[0]['shape'])
+print(output_details[0]['dtype'])
+```
+This block is responsible for reshaping the input tensor to take in multiple samples at once. The input tensor now has 93010 rows, same as the number of test samples.  
+<br />
 
-This shows the size of the model, in this case 1.2MB which is too big for ESP32. The model has to be shrunk in order to deploy on the microcontroller’s limited memory.
+```python
+test_image_tflite=np.array(x_test,dtype=np.float32)
+```
+Prepare a testing dataset that has a compatible datatype with the input tensor(np.float32).  
+<br />
 
-![A computer screen shot of a program code Description automatically generated](media/aede2629c60a6fa1b2dbbaa01fe14831.png)
+```python
+interpreter.set_tensor(input_details[0]['index'],test_image_tflite)
+interpreter.invoke()
+tflite_prediction=interpreter.get_tensor(output_details[0]['index'])
+prediction_class=np.argmax(tflite_prediction,axis=1)
+```
+```python
+actual_class=np.argmax(y_test,axis=1)
+acc=accuracy_score(prediction_class,actual_class)
+print(acc)
+```
+This code invokes the interpreter to perform inference on the input data and then takes the predicted values from the output tensor to compare against the actual values. As can be seen, the accuracy is about 96% which is similar to the tensorflow model and has minimal loss of accuracy from conversion. This is desirable and proves that tensorflowlite models are viable to be used.  
+<br />
 
-A piece of code to demonstrate how the model works. By taking a few sample features from the testing dataset and running through the model, the model will output different an array of 26 values representing how close the handwriting is to each alphabet. The highest value position is then translated into the corresponding alphabet as the chosen predicted alphabet.
-
-![A close up of a letter Description automatically generated](media/1c23ef3be2c9c2a401363b42dba2d2ac.png)
-
-As shown the model can correctly predict the samples tested.
-
-In order to run the model on ESP32, the model has to be smaller to fit into the limited memory. As good way to do this is to convert the Tensorflow model into a Tensorflowlite model. Tensorflowlite does a few optimizations and quantization to reduce the space required to store the parameter(weights) which the model is mainly comprised of.
-
-![A screen shot of a computer code Description automatically generated](media/38e64368f5bfcb6876794a4b1a63679f.png)
-
-This block of code is to convert the Tensorflow model into a tensorflowlite model. A converter is set up that takes in the tensorflow model and applies various optimizations to reduce the size of the model. The main optimization used is quantization which converts the weights(which are usually stored as floats) into a smaller data type without losing much accuracy. In order to apply quantization a representative dataset should be provided for the algorithm to estimate and calibrate the range weights so that it can optimize the size. The representative dataset is taken from the test dataset in this case.
-
-![](media/427d3f69c93741ca62ecefeada14cce1.png)
-
-This line saves the tensorflowlite model as a tflite file which can be found under the content folder of google colab. The output shows the size of the converted model which is around 100kB which is an order of magnitude smaller and more suitable to be run on the ESP32.
-
-![](media/ae4ea66d137d5d0dfaea0896c32df3aa.png)
-
-To test the tensorflowlite version of the model, it has to be run through an interpreter. The input tensor(array) accepts only 1 sample at a time as can be seen in the input_details shape. To test a large scale dataset all at once the input tensor has to be reshaped to accept more samples at once.
-
-![A screen shot of a computer code Description automatically generated](media/977dc249a0a4dedd2e8cfb64bddd6b9b.png)
-
-This block is responsible for reshaping the input tensor to take in multiple samples at once. The input tensor now has 93010 rows, same as the number of test samples.
-
-![](media/85d483c3168ceca33e1e94aec8dd0442.png)
-
-Prepare a testing dataset that has a compatible datatype with the input tensor(np.float32).
-
-![A screenshot of a computer code Description automatically generated](media/f70c40775ff85afadf0404bd8c61c921.png)
-
-This code invokes the interpreter to perform inference on the input data and then takes the predicted values from the output tensor to compare against the actual values. As can be seen, the accuracy is about 96% which is similar to the tensorflow model and has minimal loss of accuracy from conversion. This is desirable and proves that tensorflowlite models are viable to be used.
-
-![](media/73689421c985e0a255b57e0d734b59f5.png)
-
-Finally, convert the tflite model into a C++ file by using xxd command to dump the hex data into a c array. This is done to more easily include the model in the Arduino sketch. Download the cc file on the local machine.
+```
+!apt-get -qq install xxd
+```
+```
+!xxd -i /content/tf_lite_model_AZ_handwriting.tflite > tf_lite_model_AZ_handwriting.cc
+```
+Finally, convert the tflite model into a C++ file by using xxd command to dump the hex data into a c array. This is done to more easily include the model in the Arduino sketch. Download the cc file on the local machine.  
 
 After this the training phase is done and integration of handwriting system and handwriting recognition model can be performed.
