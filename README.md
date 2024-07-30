@@ -119,6 +119,7 @@ The difference between this code and the previous code is that a 28x28 2D array 
 This bit of code in void loop() purpose is to calculate which 10x10 subdivision is being touched and filling in the particular spot in the array. Example: if position is (250,200), then the array element [25][20] is set to 1. The algorithm takes advantage of the rounding done when dividing integers such that the remainder/decimal is ignored and the number is rounded down, so position 0-9 is counted as position 0, 10-19 is position 1 etc. After filling in the array, the area on the screen is also filled in with a 10x10 black box as to represent the drawn pixel, with the position of the box determined by the coordinates touched. If the region touched is not within the drawing region then the array(bitmap) info is sent to the Serial Monitor where we can confirm its validity.
 
 ![image](https://github.com/user-attachments/assets/2e990573-3de3-4b6c-98a3-05a80b6f7c4a)![image](https://github.com/user-attachments/assets/f180f195-c69b-4113-a5ec-7c69bcb7ae19)
+
 The user should be able to produce images similar to the above by drawing within the red box region, and after clicking outside the box would produce the image on the right in the Serial Monitor. Storing the image as an array will be the main method of representing the handwriting, which can then be used as input on neural networks for handwriting recognition.
 
 Training neural network model for handwriting recognition
@@ -137,19 +138,37 @@ This is a python notebook which contains code to train the handwriting recogniti
 
 Starting with the first code block:
 
-**![A screenshot of a computer code Description automatically generated](media/032e35d62d06c8e135f082c66e3c68c2.png)**
-
+```python
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import os
+from tensorflow import keras
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.losses import CategoricalCrossentropy
+from sys import getsizeof
+from google.colab import files
+from google.colab import drive
+```
 This imports all the library packages that will be used and includes useful packages like Tensorflow, Numpy etc.
 
-![](media/98274cbe974b3f4ca0d01430171f32cf.png)
-
+```python
+output_labels = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+```
 This line is used to map output numbers to an alphabet which will be useful later.
 
-![A close-up of a computer code Description automatically generated](media/b1a31bde1a1c331d752b8fcd881a9897.png)
+```python
+def get_file_size(file_path):
+  return os.path.getsize(file_path)
+```
 
 This defines a function to calculate file size.
 
-![](media/6158399b742ae2a03d8acf338605fd53.png)
+```python
+drive.mount('/content/drive')
+```
 
 This line is for mounting google drive onto google colab environment so that files in google drive can be transferred over to colab. (Manually transferring files from local machine to google colab is very slow, google drive is much faster).
 
