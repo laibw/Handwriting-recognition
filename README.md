@@ -27,7 +27,7 @@ This is the specific configuration that will be used for this project:
 
 ![image](https://github.com/user-attachments/assets/6e307fbd-31fe-4e98-a06c-0526a9dca52e)
 
-The Erase All Flash Before Sketch Upload option should be enabled when wanting to have a clean slate and removes all previous data stored within the SPIFFS internal storage (for example recalibrating screen). The partition scheme: “Huge APP (3MB No OTA/1MB SPIFFS)” used will be suitable storing large programs just in case the program size gets too big.
+The Erase All Flash Before Sketch Upload option should be enabled when wanting to have a clean slate and removes all previous data stored within the SPIFFS internal storage (for example recalibrating screen). The partition scheme: “Huge APP (3MB No OTA/1MB SPIFFS)” used will be suitable for storing large programs just in case the program size gets too big.
 
 The main library that will be used for enabling the TFT screen is TFT_eSPI, which can be installed via the library manager. After installing the TFT_eSPI library, go to the library folder installation location and access User_Setup.h and User_Setup_Select.h under Arduino/libraries/TFT_eSPI, and Setup21_ILI9488.h under /User_Setups.
 
