@@ -517,7 +517,7 @@ Moving on to void loop()
     digitalWrite(redled,HIGH);    
   }
 ```
-The first part determines whether the green or red LED will light up based on the current mode of drawing. If under drawing mode, green lights up; if under erase mode, red lights up.  
+The first part determines whether the green or red LED will light up based on the current mode of drawing. If under drawing mode, green lights up; if under erase mode, red lights up. Remember to connect the LEDs in series with resistor to the respective GPIO pins.  
 <br />
 ```c++
   uint16_t x, y;//touch coordinates
