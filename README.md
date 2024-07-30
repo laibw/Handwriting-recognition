@@ -94,7 +94,7 @@ Before testing this sketch, we will have to setup the hardware. Place the ESP32 
 
 One thing to notice is the trails left behind is rather thin and faint, which is not useful for handwriting recognition. In order for the handwriting to be usable, it must be converted into a 28x28 bitmap. Rather than working with a 28x28 pixel area, the drawing region will be 280x280 pixels and subdivided into 10x10 pixels chunks as the pixels for handwriting bitmap. The code for the current sketch will have to be modified for the new requirements. Go to the link below and open touch_test/touch_test.ino:
 
-[<https://github.com/laibw/Handwriting-recognition/tree/main/touch_test>](https://github.com/laibw/Handwriting-recognition/tree/main/touch_test)
+[Handwriting-recognition/touch_test at main · laibw/Handwriting-recognition (github.com)](https://github.com/laibw/Handwriting-recognition/tree/main/touch_test)
 
 The difference between this code and the previous code is that a 28x28 2D array is initialised at the beginning of the sketch which will be used to store our bitmap. The array is initialised to all 0s to represent an empty image. At the end of void setup() a red rectangular frame is drawn to represent the drawing area.
 
