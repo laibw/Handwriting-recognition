@@ -1,4 +1,4 @@
-Documentation of esp32 handwriting recognition system
+<ins>Documentation of esp32 handwriting recognition system</ins>
 
 Here are details of the step by step guide to creating a handwriting recognition system utilizing ESP32 microcontroller, machine learning with Tensorflow, touch screen input, and Arduino programming. Items required are listed below:
 
@@ -122,7 +122,7 @@ This bit of code in void loop() purpose is to calculate which 10x10 subdivision 
 
 The user should be able to produce images similar to the above by drawing within the red box region, and after clicking outside the box would produce the image on the right in the Serial Monitor. Storing the image as an array will be the main method of representing the handwriting, which can then be used as input on neural networks for handwriting recognition.
 
-Training neural network model for handwriting recognition
+<ins>Training neural network model for handwriting recognition</ins>
 
 The target of our handwriting recognition system is to be able to recognise handwritten alphabets. This will require a neural network that has been trained on handwritten alphabets to detect the users handwriting and output the closest matched alphabet. In order to train the model, high quality training data with labels is required. The link below contains a downloadable csv file that contains 300000+ examples of handwritten alphabets in grayscale format with labels.
 
