@@ -32,19 +32,18 @@ The Erase All Flash Before Sketch Upload option should be enabled when wanting t
 The main library that will be used for enabling the TFT screen is TFT_eSPI, which can be installed via the library manager. After installing the TFT_eSPI library, go to the library folder installation location and access User_Setup.h and User_Setup_Select.h under Arduino/libraries/TFT_eSPI, and Setup21_ILI9488.h under /User_Setups.
 
 In User_Setup.h, comment out the line (line45):
-
 ```c++
 //#define ILI9341_DRIVER       // Generic driver for common displays`
 ```
+<br />
 
 Uncomment this line (line54):
-
 ```c++
 #define ILI9488_DRIVER     // WARNING: Do not connect ILI9488 display SDO to MISO if other devices share the SPI bus (TFT SDO does NOT tristate when CS is high)
 ```
+<br />
 
 Comment out these lines (line170-176):
-
 ```c++
 //#define TFT_MISO  PIN_D6  // Automatically assigned with ESP8266 if not defined
 //#define TFT_MOSI  PIN_D7  // Automatically assigned with ESP8266 if not defined
@@ -54,21 +53,21 @@ Comment out these lines (line170-176):
 //#define TFT_DC    PIN_D3  // Data Command control pin
 //#define TFT_RST   PIN_D4  // Reset pin (could connect to NodeMCU RST, see next line)
 ```
+<br />
 
 Uncomment this line (line230):
-
 ```c++
 #define TOUCH_CS 21     // Chip select pin (T_CS) of touch screen
 ```
+<br />
 
 Go to User_Setup_Select.h and uncomment this line (line52):
-
 ```c++
 #include <User_Setups/Setup21_ILI9488.h>           // Setup file for ESP32 and ILI9488 SPI bus TFT
 ```
+<br />
 
 Go to Setup21_ILI9488.h and make sure the values are as shown below:
-
 ```c++
 #define USER_SETUP_ID 21
 
@@ -83,6 +82,7 @@ Go to Setup21_ILI9488.h and make sure the values are as shown below:
 #define TFT_DC    2  // Data Command control pin
 #define TFT_RST   4  // Reset pin (could connect to RST pin)
 ```
+<br />
 
 Save all the changes made and return back to the Arduino IDE.
 
@@ -137,7 +137,6 @@ Open Google Colab (or Jupyter notebook on local machine, recommended using colab
 This is a python notebook which contains code to train the handwriting recognition model with Tensorflow/Tensorflowlite. Tensorflow is a machine learning framework that helps with simplifying machine learning processes, while Tensorflowlite is a lightweight version of Tensorflow suitable for edge and embedded devices like ESP32. The notebook is spilt into code blocks that will be run sequentially and separately for easier understanding.
 
 Starting with the first code block:
-
 ```python
 import numpy as np
 import pandas as pd
@@ -153,43 +152,56 @@ from google.colab import files
 from google.colab import drive
 ```
 This imports all the library packages that will be used and includes useful packages like Tensorflow, Numpy etc.  
-<blank>
+<br />
+
 ```python
 output_labels = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 ```
 This line is used to map output numbers to an alphabet which will be useful later.  
+<br />
 
 ```python
 def get_file_size(file_path):
   return os.path.getsize(file_path)
 ```
-
 This defines a function to calculate file size.
+<br />
 
 ```python
 drive.mount('/content/drive')
 ```
-
 This line is for mounting google drive onto google colab environment so that files in google drive can be transferred over to colab. (Manually transferring files from local machine to google colab is very slow, google drive is much faster).
+<br />
 
-![A white card with black text Description automatically generated](media/febd36aaaab63dd4739da73d843b169d.png)
-
+![image](https://github.com/user-attachments/assets/52ab56eb-fc41-442e-ac06-01505cb81b05)
 After running this line, a prompt will show up asking for permission to access google drive. Follow through all the steps and connect google colab to the google drive account which contains the csv data.
+<br />
 
-![A screenshot of a computer Description automatically generated](media/53a29acc50e5441b3ed5377c655bf451.png)
-
+```python
+data_path = '/content/drive/MyDrive/handwritten_data_785.csv'
+df = pd.read_csv(data_path)
+df.shape
+```
 Here the data from the csv file in google drive is read and stored in variable df (Note that the csv file name here is handwritten_data_785.csv, but it could be different and has to be changed in the code accordingly). df.shape shows the shape of the df: (372037, 785). 372037 examples of alphabet handwriting and 784 pixel value +1 label value.
+<br />
 
-![A black and white image of a mathematical equation Description automatically generated](media/4f59abcb5582e2251162a7be1cee211a.png)
-
+```python
+features = df.values[:,1:]
+labels = df.values[:,0]
+```
 This splits the data into pixel values(features) and labels using array slicing. [:,1:] means all rows and second to last column, [:,0] means all rows and first column (since the label value is stored in the first column).
+<br />
 
-![A close up of a text Description automatically generated](media/1ef6ce2721e2ad850e327a9e136b83d4.png)
-
+```python
+features = features / 255.
+features=np.ceil(features)
+labels=keras.utils.to_categorical(labels)
+```
 This sections deals with preprocessing the data to be more suitable for training. First the features are divided by 255 to convert the range from 0-255 to 0-1 which will be easier to train. The pixel values are then converted from grayscale to binary using np.ceil() function which makes all non 0 pixels 1. This is done to match the input method of the handwriting system as a binary bitmap, which will produce a model that is better suited for the current usage. The labels currently are in the form of 0-25 to represent alphabets, but it will be more useful if it’s a one-hot encoded array with all elements as 0 except the position corresponding to the label itself as 1. This is done using the keras.utils.to_categorical() function. A label that was originally 13 for example will become a 1D array of all 0 except index 13 which is 1.
-
-![](media/c829ec2c2592e22fd2acdbf50041af6d.png)
-
+<br />
+```python
+x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=0.25, random_state=42)
+```
 This line splits the labels and features into training and testing datasets randomly in a 75:25 split. 42 is the random seed used so that the dataset can be replicated exactly between examples. x are features and y are labels. Splitting the dataset is important to avoid overfitting the training data set during training.
 
 ![A close-up of a computer code Description automatically generated](media/dbcb3dcb94336f85549f87d30bf64cf6.png)
