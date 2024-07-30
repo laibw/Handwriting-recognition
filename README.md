@@ -98,7 +98,23 @@ One thing to notice is the trails left behind is rather thin and faint, which is
 
 The difference between this code and the previous code is that a 28x28 2D array is initialised at the beginning of the sketch which will be used to store our bitmap. The array is initialised to all 0s to represent an empty image. At the end of void setup() a red rectangular frame is drawn to represent the drawing area.
 
-![A computer code with text Description automatically generated with medium confidence](media/2adb21ce22a2288ffadaa28746c79b86.png)
+```c++
+    if(x<280&&y<280){
+       x=x/10;
+       y=y/10;
+       d[x][y]=1;
+       x=x*10;
+       y=y*10;
+       tft.fillRect(x, y, 10, 10, TFT_BLACK);
+    }else{
+       for(int i=0;i<height;i++){
+          Serial.println();
+          for(int j=0;j<width;j++){
+            Serial.printf("%d ",d[j][i]);
+          }
+       }   
+    }
+```
 
 This bit of code in void loop() purpose is to calculate which 10x10 subdivision is being touched and filling in the particular spot in the array. Example: if position is (250,200), then the array element [25][20] is set to 1. The algorithm takes advantage of the rounding done when dividing integers such that the remainder/decimal is ignored and the number is rounded down, so position 0-9 is counted as position 0, 10-19 is position 1 etc. After filling in the array, the area on the screen is also filled in with a 10x10 black box as to represent the drawn pixel, with the position of the box determined by the coordinates touched. If the region touched is not within the drawing region then the array(bitmap) info is sent to the Serial Monitor where we can confirm its validity.
 
