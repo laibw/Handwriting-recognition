@@ -1,4 +1,4 @@
-<ins>Documentation of esp32 handwriting recognition system</ins>
+# <ins>Documentation of esp32 handwriting recognition system</ins>
 
 Here are details of the step by step guide to creating a handwriting recognition system utilizing ESP32 microcontroller, machine learning with Tensorflow, touch screen input, and Arduino programming. Items required are listed below:
 
@@ -11,7 +11,7 @@ Here are details of the step by step guide to creating a handwriting recognition
 -   Red and Green LEDs (optional)
 -   Resistors (optional)
 
-Handwriting system
+## <ins>Handwriting system</ins>
 
 First, the handwriting input system uses ILI9488 3.5’’ SPI TFT Module. This is a 320x480 TFT touch-enabled screen that will be used as a writing pad. An ESP32 Dev Module will be used as the microcontroller. Breadboard and jumper wires will be used as connections between ESP32 and screen.
 
@@ -122,7 +122,7 @@ This bit of code in void loop() purpose is to calculate which 10x10 subdivision 
 
 The user should be able to produce images similar to the above by drawing within the red box region, and after clicking outside the box would produce the image on the right in the Serial Monitor. Storing the image as an array will be the main method of representing the handwriting, which can then be used as input on neural networks for handwriting recognition.
 
-<ins>Training neural network model for handwriting recognition</ins>
+## <ins>Training neural network model for handwriting recognition</ins>
 
 The target of our handwriting recognition system is to be able to recognise handwritten alphabets. This will require a neural network that has been trained on handwritten alphabets to detect the users handwriting and output the closest matched alphabet. In order to train the model, high quality training data with labels is required. The link below contains a downloadable csv file that contains 300000+ examples of handwritten alphabets in grayscale format with labels.
 
@@ -370,3 +370,318 @@ This code invokes the interpreter to perform inference on the input data and the
 Finally, convert the tflite model into a C++ file by using xxd command to dump the hex data into a c array. This is done to more easily include the model in the Arduino sketch. Download the cc file on the local machine.  
 
 After this the training phase is done and integration of handwriting system and handwriting recognition model can be performed.
+
+## <ins>Complete Handwriting Recognition System</ins>
+In order to use the tensorflowlite model in Arduino sketch, it has to be included as a header file. Create a header file: tf_lite_model_AZ_handwriting.h
+Inside the header file add the following lines of code:
+```c++
+extern const unsigned char g_model[];
+extern const int g_model_len;
+```
+This will tell your program that includes this header file that there are variables with these names already declared in another cpp file.  
+<br />
+Open the cc file and make sure the variable names is the same as in the header file.  
+Self include the header file in the cc file(to prevent definition mismatch) and add alignas(8) infront of the array declaration:
+```c++
+#include "tf_lite_model_AZ_handwriting.h"
+alignas(8) const unsigned char g_model[] = {
+```
+Save the cc file as cpp file because Arduino IDE only recognises cpp file (despite being the same thing).  
+Now the source and header files for the model is properly formatted, it can be included into a new sketch folder, using a copy of touch_test.ino as the basis for the next phase.  
+<br />
+The source code for Complete Handwriting Recognition System is in the link below:  
+[Handwriting-recognition/touch_AZ_example_Copy at main · laibw/Handwriting-recognition (github.com)](https://github.com/laibw/Handwriting-recognition/tree/main/touch_AZ_example_Copy)  
+<br />
+Building upon the code for touch_test, additional libraries are added to include tensorflowlite support.
+```c++
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/system_setup.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/micro/micro_log.h"
+#include "tf_lite_model_AZ_handwriting.h"
+#include "FS.h"
+#include <SPI.h>
+#include <TFT_eSPI.h>
+```
+Various libraries related to tensorflowlite is included for different purposes, such as operation resolvers, interpreter, setup and logging. The model header file is also included (tf_lite_model_AZ_handwriting.h) along with the libraries for the screen.  
+<br />
+```c++
+TFT_eSPI tft = TFT_eSPI();
+#define CALIBRATION_FILE "/calibrationData"
+
+// Globals, used for compatibility with Arduino-style sketches.
+namespace {
+const tflite::Model *model = nullptr;
+tflite::MicroInterpreter *interpreter = nullptr;
+TfLiteTensor *input = nullptr;
+TfLiteTensor *output = nullptr;
+constexpr int kTensorArenaSize = 10000;
+uint8_t tensor_arena[kTensorArenaSize];
+const int width = 28;
+const int height = 28;
+float d[width][height];//image array
+int draw=1;
+const int redled=25;
+const int greenled=27;
+}  // namespace
+```
+Here all the variables and objects are declared. Note the redled and greenled variable values as this are the GPIO pins that is connected to the red and green LEDs. kTensorArenaSize is the size of the memory allocated to the tensors required to run the model. This can be smaller than the model size due to efficient allocation and deallocation management during runtime. The value can be reduced by trial and error until the program cannot run, after which it is set to the smallest usable value.  
+<br />
+The beginning of void setup() is similar to the code in touch_test where the image array is initialised to all 0s and the screen the calibrated.
+```c++
+  //draw boxes and words for GUI
+  tft.fillScreen((0xFFFF));
+  tft.drawRect(0,0,281,281,TFT_RED);
+  tft.fillRect(300,100,50,50,TFT_GREEN);
+  tft.setCursor(351, 100, 2);
+  tft.print("Recognise alphabet");
+  tft.fillRect(300,200,50,50,TFT_RED);
+  tft.setCursor(351, 200, 2);
+  tft.print("Reset");
+  tft.fillRect(300,260,40,40,TFT_GREEN);
+  tft.setCursor(300, 300, 2);
+  tft.print("Draw");
+  tft.fillRect(340,260,40,40,TFT_RED);
+  tft.setCursor(340, 300, 2);
+  tft.print("Erase");
+```
+After calibration, draw a few rectangles on the screen that represent different interactable regions such as drawing region, reset button, recognise button, draw and erase button.  
+<br />
+```c++
+  // Map the model into a usable data structure. This doesn't involve any
+  // copying or parsing, it's a very lightweight operation.
+  model = tflite::GetModel(g_model);
+  if (model->version() != TFLITE_SCHEMA_VERSION) {
+    MicroPrintf(
+      "Model provided is schema version %d not equal to supported "
+      "version %d.",
+      model->version(), TFLITE_SCHEMA_VERSION
+    );
+    return;
+  }
+```
+After completing the screen setup, begin the tensorflowlite setup. The first line creates a model object from using the model data in the model source file (tf_lite_model_AZ_handwriting.cpp). It checks whether the model version is compatible with the current schema of the library, and prints an error message if not.  
+<br />
+```c++
+  // Pull in only the operation implementations we need.
+  static tflite::MicroMutableOpResolver<3> resolver;
+  if (resolver.AddFullyConnected() != kTfLiteOk) {
+    MicroPrintf("Failed resolver.AddFullyConnected()");
+    return;
+  }
+  if (resolver.AddQuantize() != kTfLiteOk) {
+    MicroPrintf("Failed resolver.AddQuantize()");
+    return;
+  }
+  if (resolver.AddDequantize() != kTfLiteOk) {
+    MicroPrintf("Failed resolver.AddDequantize()");
+    return;
+  }
+```
+This section adds the required operations to the MicroMutableOpResolver which  has the  instructions to perform the calculations required to run the model. This model is a fully connected perceptron type neural network and requires the FullyConnected operation. Since the model has been quantized during conversion to tensorflowlite, quantize and dequantize operations are also required. Error message will be displayed if this step fails.  
+<br />
+```c++
+  // Build an interpreter to run the model with.
+  static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kTensorArenaSize);
+  interpreter = &static_interpreter;
+```
+Similarly to Python, an interpreter is required to run the tensorflowlite model. The interpreter requires information such as the model itself, the operations inside the opresolver, the tensor arena and size of the arena.  
+<br />
+```c++
+  // Allocate memory from the tensor_arena for the model's tensors.
+  TfLiteStatus allocate_status = interpreter->AllocateTensors();
+  if (allocate_status != kTfLiteOk) {
+    MicroPrintf("AllocateTensors() failed");
+    return;
+  }
+```
+Allocate the memory for the tensor arena.  
+<br />
+```c++
+  // Obtain pointers to the model's input and output tensors.
+  input = interpreter->input(0);
+  output = interpreter->output(0);
+  pinMode(redled,OUTPUT);
+  pinMode(greenled,OUTPUT);
+```
+Obtain pointers to the input and output tensors for easy access. Also initialise the GPIO pins for the LEDs.  
+<br />
+Moving on to void loop()
+```c++
+  if(draw==1){
+    digitalWrite(greenled,HIGH);
+    digitalWrite(redled,LOW);
+  }else{
+    digitalWrite(greenled,LOW);
+    digitalWrite(redled,HIGH);    
+  }
+```
+The first part determines whether the green or red LED will light up based on the current mode of drawing. If under drawing mode, green lights up; if under erase mode, red lights up.  
+<br />
+```c++
+  uint16_t x, y;//touch coordinates
+  if (tft.getTouch(&x, &y)) {
+    //tft.fillRect(300,60,100,100,TFT_WHITE);
+    tft.setCursor(281, 5, 2);
+    tft.printf("x: %i     ", x);
+    tft.setCursor(281, 20, 2);
+    tft.printf("y: %i    ", y);//display coordinates
+```
+Detects whether the screen is touched and display the coordinates.  
+<br />
+```c++
+    //draw button
+    if(300<x && x<340 && 260<y && y<300){
+      draw=1;
+
+    //erase button
+    }else if(340<x && x<380 && 260<y && y<300){
+      draw=0;
+```
+Checks if the draw or erase button is touched and sets the mode using draw variable.  
+<br />
+```c+=
+    //drawing
+    }else if(x<280&&y<280&&draw==1){
+      x=x/10;
+      y=y/10;
+      if(x<27&&y<27){
+        d[x][y]=1.f;
+        d[x+1][y]=1.f;
+        d[x][y+1]=1.f;
+        d[x+1][y+1]=1.f;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 20, 20, TFT_BLACK);
+      }else if(x==27&&y<27){
+        d[x][y]=1.f;
+        d[x][y+1]=1.f;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 10, 20, TFT_BLACK);
+      }else if(x<27&&y==27){
+        d[x][y]=1.f;
+        d[x+1][y]=1.f;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 20, 10, TFT_BLACK);
+      }else{
+        d[x][y]=1.f;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 10, 10, TFT_BLACK);
+      }
+```
+When drawing in the drawing region, the cursor will draw 2x2 pixels(subregions) to better emulate actual handwriting which has thickness. This is also reflected in array and screen display. The if-else statements check for boundary conditions to avoid drawing out of bounds of the drawing region/array. This block of code is only executed if the mode is drawing mode(draw==1) and within the drawing region.  
+<br />
+```c++
+    //erasing
+    }else if(x<280&&y<280&&draw==0){
+      x=x/10;
+      y=y/10;
+      if(x<27&&y<27){
+        d[x][y]=0;
+        d[x+1][y]=0;
+        d[x][y+1]=0;
+        d[x+1][y+1]=0;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 20, 20, TFT_WHITE);
+      }else if(x==27&&y<27){
+        d[x][y]=0;
+        d[x][y+1]=0;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 10, 20, TFT_WHITE);
+      }else if(x<27&&y==27){
+        d[x][y]=0;
+        d[x+1][y]=0;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 20, 10, TFT_WHITE);
+      }else{
+        d[x][y]=0;
+        x=x*10;
+        y=y*10;
+        tft.fillRect(x, y, 10, 10, TFT_WHITE);
+      }
+```
+This section is similar to above except for erasing in a 2x2 region, useful for erasing unwanted parts of the drawing. This only executes when in erase mode(draw==0) and within the drawing region.  
+<br />
+```c++
+    //click green button
+    }else if(x>300&&x<350&&y>100&&y<150){
+      //send image array to serial monitor
+      for(int i=0;i<height;i++){
+        Serial.println();
+        for(int j=0;j<width;j++){
+          if(d[j][i]==0){
+            Serial.print("  ");
+          }else{
+            Serial.print("@@");
+          }
+        }
+      }
+```
+This part runs when the green button(region) is touched which starts the handwriting recognition process. First the image is displayed in the Serial Monitor as an ASCII bitmap.  
+<br />
+```c++
+      //load_model
+      for(int i=0;i<28;i++){
+        for(int j=0;j<28;j++){
+          input->data.f[i*28+j] = d[j][i];
+        }  
+      }
+      // Run inference, and report any error
+      TfLiteStatus invoke_status = interpreter->Invoke();
+      if (invoke_status != kTfLiteOk) {
+        MicroPrintf("Invoke failed");
+        return;
+      }
+```
+The model is invoked to run inference on the handwriting image by passing the image array into the input tensor. An error message is printed if this fails.  
+<br />
+```c++
+      Serial.println();
+      float out[26];
+      for(int i=0;i<26;i++){
+        out[i]=output->data.f[i];
+        MicroPrintf("%c: %f ",i+65,out[i]);
+      }
+      float bestfitvalue;
+      int numberrec;
+      bestfitvalue=out[0];
+      for(int i=0;i<26;i++){
+        if(bestfitvalue<=out[i]){
+          bestfitvalue=out[i];
+          numberrec=i;
+        }
+      }
+      MicroPrintf("Alphabet recognised: %c",numberrec+'A');
+      tft.fillRect(351,120,20,20,TFT_WHITE);
+      tft.setCursor(351, 120, 2);
+      tft.printf("%c",numberrec+'A');
+```
+After inference is done, the logit values for all 26 alphabets are obtained from the output tensor and displayed. Then the highest logit value is determined and declared as the alphabet recognised by the model. The result is displayed on the screen and in the Serial Monitor.  
+<br />
+```c++
+    //clicked reset button
+    }else if(x>300&&x<350&&y>200&&y<250){
+      for(int i=0;i<height;i++){
+        for(int j=0;j<width;j++){
+          d[i][j]=0;
+        }
+      }
+      tft.fillRect(1,1,279,279,TFT_WHITE);
+      tft.drawRect(0,0,281,281,TFT_RED);
+    }
+```
+Finally, if the reset button(region) is touched then the drawing region is wiped clean and the image array is reset to all 0s.  
+<br />
+An example of the system working IRL:
+![image](https://github.com/user-attachments/assets/5bff7603-28e0-44dc-84b9-b0c215a9d71a)  
+As shown, the lines drawn are thicker compared to touch_test because of the 2x2 thickness “brush size”. It has a recognise alphabet button in green, rest button in red, and draw and erase button at the bottom. The handwriting of an S is correctly recognised.  
+<br />
+![image](https://github.com/user-attachments/assets/d302b2ce-c66e-4f80-982b-524a18933817)|![image](https://github.com/user-attachments/assets/f7a060af-9d36-45b1-b6a7-65135e470f59)  
+The Serial Monitor displays the image and the logits for each alphabet, with the highest value being selected.
